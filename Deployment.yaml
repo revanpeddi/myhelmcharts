@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "revanchart.fullname" . }}
+  labels:
+    {{- include "revanchart.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "revanchart.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      name: {{ include "revanchart.fullname" . }}
+        labels:
+        {{- include "revanchart.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 80
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+          resources:
+            requests:
+              memory: {{ .Values.requests.memory }}
+              cpu: {{ .Values.requests.cpu }}
+            limits:
+              memory: {{ .Values.limits.memory }}
+              cpu: {{ .Values.limits.cpu }}
+          env:
+            - name: ENV_NAME
+              value: VALUE
+          volumeMounts:
+            - name: {{ include "revanchart.fullname" . }}
+              mountPath: /app/Logfile/
+            - name: config
+              mountPath: /app/config/
+              readOnly: true
+            - name: secret
+              mountPath: /app/secret/
+              readonly: true
+      volumes:
+        - name: {{ include "revanchart.fullmane" . }}
+          persistentVolumeClaim:
+            claimName: {{ include "revanchart.pvc" . }}
+        - name: secret
+          secret:
+            secretName: {{ include "revanchart.secret" . }}
+        - name: config
+          configMap:
+            name: {{ include "revanchart.configmap" . }}
+      imagePullSecrets:
+        name: {{ include "revanchart.imagepullsecrets" . }}
